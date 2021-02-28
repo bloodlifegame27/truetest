@@ -1,0 +1,48 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Jobs
+env: # Or as an environment variable
+  SPACE_ID: ${{ secrets.CONTENTFUL_SPACE_ID }} 
+  ACCESS_TOKEN: ${{ secrets.CONTENTFUL_ACCESS_TOKEN }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+
+
+
+on:
+  push:
+    branches:
+    - master
+    - add_github_actions
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        sudo npm install -g gatsby-cli -y
+        curl -fsSL https://get.pulumi.com | sh
+
+    - name: build
+      run: |
+        npm install
+        sed -i 's/SED_SPACE_ID/'${SPACE_ID}'/g' .env
+        sed -i 's/SED_ACCESS_TOKEN/'${ACCESS_TOKEN}'/g' .env
+        sudo gatsby build
+    - name: deploy
+      run: |
+        python3 -m venv /home/runner/work/gatsby-contentful-portfolio/gatsby-contentful-portfolio/venv
+        /home/runner/work/gatsby-contentful-portfolio/gatsby-contentful-portfolio/venv/bin/python -m pip install --upgrade pip setuptools wheel
+        /home/runner/work/gatsby-contentful-portfolio/gatsby-contentful-portfolio/venv/bin/python -m pip install -r requirements.txt
+        ./install_update.sh release eu-central-1
